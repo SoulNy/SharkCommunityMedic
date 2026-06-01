@@ -18,7 +18,6 @@ if 'runner_name' not in st.session_state: st.session_state.runner_name = ""
 # --- ฟังก์ชัน Callback สำหรับอัปเดตสถานะ ---
 def update_status(doctor_id):
     new_val = st.session_state[f"s_{doctor_id}"]
-    
     # Logic: ถ้าเลือก "คิวต่อไป" ให้คนอื่นที่เหลือกลายเป็น "✅ พร้อม" ทันที
     if new_val == "⏳ คิวต่อไป":
         for doc in st.session_state.doctors:
@@ -29,7 +28,6 @@ def update_status(doctor_id):
         if doc['id'] == doctor_id:
             doc['status'] = new_val
             break
-    # หมายเหตุ: ไม่ต้องใส่ st.rerun() ใน callback เพราะ Streamlit จะ refresh หน้าจอให้เองครับ
 
 # --- ส่วน Sidebar ---
 with st.sidebar:
@@ -58,14 +56,15 @@ if st.button("เพิ่มชื่อ") and new_name:
 st.markdown("---")
 
 # --- ตารางแสดงผล ---
-cols = st.columns([0.5, 3, 2, 0.8])
+cols = st.columns([0.5, 3, 2, 1.5, 0.8])
 cols[0].write("**No.**")
 cols[1].write("**ชื่อแพทย์**")
 cols[2].write("**สถานะ**")
+# cols[3].write("**ลำดับ**")
 cols[3].write("**ลบ**")
 
 for i, doc in enumerate(st.session_state.doctors):
-    c1, c2, c3, c4 = st.columns([0.5, 3, 2, 0.8])
+    c1, c2, c3, c4, c5 = st.columns([0.5, 3, 2, 1.5, 0.8])
     c1.write(f"{i+1}")
     
     # แก้ไขชื่อแบบ Inline
@@ -74,6 +73,15 @@ for i, doc in enumerate(st.session_state.doctors):
     # เลือกสถานะ
     c3.selectbox("สถานะ", STATUS_OPTIONS, index=STATUS_OPTIONS.index(doc['status']), 
                  key=f"s_{doc['id']}", label_visibility="collapsed", on_change=update_status, args=(doc['id'],))
+    
+    # # ปุ่มเลื่อนลำดับ
+    # move_cols = c4.columns(2)
+    # if move_cols[0].button("🔼", key=f"up_{doc['id']}") and i > 0:
+    #     st.session_state.doctors[i], st.session_state.doctors[i-1] = st.session_state.doctors[i-1], st.session_state.doctors[i]
+    #     st.rerun()
+    # if move_cols[1].button("🔽", key=f"dn_{doc['id']}") and i < len(st.session_state.doctors) - 1:
+    #     st.session_state.doctors[i], st.session_state.doctors[i+1] = st.session_state.doctors[i+1], st.session_state.doctors[i]
+    #     st.rerun()
         
     # ปุ่มลบ
     if c4.button("🗑️", key=f"d_{doc['id']}"):
