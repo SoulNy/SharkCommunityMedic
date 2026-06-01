@@ -29,9 +29,7 @@ def update_status(doctor_id):
         if doc['id'] == doctor_id:
             doc['status'] = new_val
             break
-    
-    # สั่งให้หน้าจออัปเดตใหม่ทันที เพื่อให้ Selectbox แสดงค่าล่าสุด
-    st.rerun()
+    # หมายเหตุ: ไม่ต้องใส่ st.rerun() ใน callback เพราะ Streamlit จะ refresh หน้าจอให้เองครับ
 
 # --- ส่วน Sidebar ---
 with st.sidebar:
