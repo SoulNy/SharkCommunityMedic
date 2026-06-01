@@ -101,7 +101,7 @@ if st.button("🚀 ส่งข้อมูลไป Discord"):
         message = "🚑 **สถานะทีมแพทย์ Shark Community**\n"
         message += "```\n"
         message += f"👨‍⚕️ ผู้รันคิว: {st.session_state.runner_name}\n\n"
-        message += f"{'No.':<4} {'ชื่อแพทย์':<15} | {'สถานะ':<10}\n"
+        message += f"{'No.':<4} {'ชื่อแพทย์':<18} | {'สถานะ':<10}\n"
         message += "-" * 40 + "\n"
         
         for i, doc in enumerate(st.session_state.doctors):
