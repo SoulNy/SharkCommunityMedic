@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 
-WEB_APP_URL = "วาง URL ที่ได้จาก Web App ตรงนี้"
+WEB_APP_URL = "https://docs.google.com/spreadsheets/d/1aY6iR68-2tXKvlpeQLrjj9Wh0ireTNDDz3GEGQOKIyU/edit?usp=sharing"
 
 st.set_page_config(page_title="Shark Medic", page_icon="🚑")
 st.title("🚑 ระบบจัดการสถานะแพทย์")
