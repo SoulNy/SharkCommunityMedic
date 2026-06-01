@@ -5,25 +5,20 @@ st.set_page_config(page_title="Shark Community Medic", page_icon="🚑")
 st.title("🚑 ระบบจัดการสถานะแพทย์ Shark Community")
 
 # --- ตั้งค่า Webhook ตรงนี้ ---
-WEBHOOK_URL = "https://discord.com/api/webhooks/1510897665020530781/thYbEXxxQkhbdLaSPPqVUCIUhyXP7ynp4gJs4By-Q92HS2MpqZQqoIbLDNkBYSyrrlux"
+WEBHOOK_URL = "ใส่_WEBHOOK_URL_ของคุณที่นี่"
 
 STATUS_OPTIONS = ["✅ พร้อม", "⏳ คิวต่อไป", "🛠️ เคสแก้", "💤 เหม่อ / รี ตม.", "🎮 ไปกิจกรรม"]
 
 if 'doctors' not in st.session_state: st.session_state.doctors = []
 if 'runner_name' not in st.session_state: st.session_state.runner_name = ""
 
-# --- Callback Function (แก้ไขให้ดึงค่าจาก key โดยตรง) ---
+# --- Callback Function ---
 def update_status(index):
-    # ดึงค่าสถานะใหม่จาก key ที่กำหนดไว้ใน selectbox
     new_val = st.session_state[f"s_{index}"]
-    
     if new_val == "⏳ คิวต่อไป":
-        # เปลี่ยนคนอื่นที่เคยเป็น "คิวต่อไป" ให้เป็น "พร้อม"
         for i in range(len(st.session_state.doctors)):
             if i != index and st.session_state.doctors[i]['status'] == "⏳ คิวต่อไป":
                 st.session_state.doctors[i]['status'] = "✅ พร้อม"
-    
-    # อัปเดตสถานะของคนที่เลือก
     st.session_state.doctors[index]['status'] = new_val
 
 # --- ส่วน Sidebar ---
@@ -57,7 +52,6 @@ for i, doc in enumerate(st.session_state.doctors):
     col1.write(f"{i+1}")
     col2.write(f"{doc['name']}")
     
-    # เรียกใช้ selectbox พร้อม on_change callback
     col3.selectbox(
         "สถานะ", 
         STATUS_OPTIONS, 
@@ -65,14 +59,15 @@ for i, doc in enumerate(st.session_state.doctors):
         key=f"s_{i}", 
         label_visibility="collapsed",
         on_change=update_status,
-        args=(i,) # ส่งแค่ index เข้าไปเพื่อป้องกัน KeyError
+        args=(i,)
     )
     
     if col4.button("ลบ", key=f"d_{i}"):
         st.session_state.doctors.pop(i)
         st.rerun()
 
-# --- ส่วนส่ง Discord (แบบจัดฟอร์แมตเป๊ะ) ---
+# --- ส่ง Discord (รูปแบบตาม image_0a44a7.png) ---
+st.markdown("---")
 if st.button("🚀 ส่งข้อมูลไป Discord"):
     queue_count = sum(1 for d in st.session_state.doctors if d['status'] == "⏳ คิวต่อไป")
     
@@ -81,22 +76,17 @@ if st.button("🚀 ส่งข้อมูลไป Discord"):
     elif queue_count > 1:
         st.error(f"❌ ผิดพลาด! มีคนเป็น 'คิวต่อไป' {queue_count} คน (ต้องมีแค่ 1)")
     else:
-        # เริ่มต้น Message ด้วย Header
         message = "🚑 **สถานะทีมแพทย์ Shark Community**\n"
         message += "```\n"
         message += f"{'No.':<4} {'ชื่อแพทย์':<15} | {'สถานะ':<10}\n"
         message += "-" * 40 + "\n"
         
-        # เพิ่มข้อมูลแต่ละคน
         for i, doc in enumerate(st.session_state.doctors):
-            # ใช้ ljust หรือการจัดฟอร์แมต string เพื่อให้ระยะห่างเท่ากัน
-            # ปรับตัวเลขตามความเหมาะสมของชื่อ
-            name = doc['name'] if len(doc['name']) < 12 else doc['name'][:9] + "..."
-            message += f"{i+1:<4} {name:<15} | {doc['status']}\n"
+            # แสดงชื่อเต็มตามที่ต้องการ
+            message += f"{i+1:<4} {doc['name']:<15} | {doc['status']}\n"
         
         message += "```"
         
-        # ส่ง Discord
         data = {"content": message}
         try:
             response = requests.post(WEBHOOK_URL, json=data)
