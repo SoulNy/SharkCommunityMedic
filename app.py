@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 
 # เอา URL ที่ได้จากขั้นตอนที่ 7 มาใส่ตรงนี้
-WEB_APP_URL = "https://docs.google.com/spreadsheets/d/1aY6iR68-2tXKvlpeQLrjj9Wh0ireTNDDz3GEGQOKIyU/edit?usp=sharing"
+WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz4dtQxupjLxjMnBJCP2K_jddcH__fgPSzhAODvNGWw984wOON1qYFN-cLYfg0Z09OU/exec"
 
 st.set_page_config(page_title="Shark Community Medic", page_icon="🚑")
 st.title("🚑 ระบบจัดการสถานะแพทย์")
