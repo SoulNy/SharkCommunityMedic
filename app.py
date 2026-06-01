@@ -28,27 +28,31 @@ st.markdown("---")
 head1, head2, head3 = st.columns([1, 4, 3])
 head1.write("**No.**"); head2.write("**ชื่อแพทย์**"); head3.write("**สถานะ**")
 
-# --- ส่วนแสดงสถานะแบบ Logic ล็อกคิว ---
 for i, doc in enumerate(st.session_state.doctors):
-    col1, col2, col3 = st.columns([1, 6, 1])
-    col1.write(f"**{i+1}**")
+    col1, col2, col3, col4 = st.columns([1, 4, 3, 1])
+    col1.write(f"{i+1}")
     col2.write(f"{doc['name']}")
     
-    # ถ้าสถานะเดิมเป็น "คิวต่อไป" ให้แสดงเป็นข้อความเน้นพิเศษ
-    if doc['status'] == "⏳ คิวต่อไป":
-        if col3.button("✅ ตั้งเป็นพร้อม", key=f"s_{i}"):
-            doc['status'] = "✅ พร้อม"
-            st.rerun()
-    else:
-        # ถ้ายังไม่เป็นคิวต่อไป ให้แสดงปุ่ม "จองคิว"
-        if col3.button("⏳ จองคิว", key=f"s_{i}"):
-            # ปรับทุกคนให้เป็น "พร้อม" ก่อน
-            for d in st.session_state.doctors:
-                if d['status'] == "⏳ คิวต่อไป":
-                    d['status'] = "✅ พร้อม"
-            # แล้วค่อยตั้งคนนี้เป็นคิวต่อไป
-            doc['status'] = "⏳ คิวต่อไป"
-            st.rerun()
+    # ดึงค่าสถานะปัจจุบัน
+    current_status = doc['status']
+    
+    # เลือกสถานะใหม่
+    new_status = col3.selectbox("สถานะ", STATUS_OPTIONS, index=STATUS_OPTIONS.index(current_status), key=f"s_{i}", label_visibility="collapsed")
+    
+    # ปรับ Logic: ถ้าเลือก "คิวต่อไป" ให้คนอื่นที่เหลือเป็น "พร้อม" ทันที
+    if new_status != current_status:
+        if new_status == "⏳ คิวต่อไป":
+            for j in range(len(st.session_state.doctors)):
+                if j != i:
+                    if st.session_state.doctors[j]['status'] == "⏳ คิวต่อไป":
+                        st.session_state.doctors[j]['status'] = "✅ พร้อม"
+        
+        doc['status'] = new_status
+        st.rerun() # รีโหลดหน้าจอเพื่ออัปเดตข้อมูลให้ตรงกันทั้งตาราง
+        
+    if col4.button("ลบ", key=f"d_{i}"):
+        st.session_state.doctors.pop(i)
+        st.rerun()
 
 # --- ส่ง Discord แบบเช็คความถูกต้องก่อนส่ง ---
 if st.button("🚀 ส่งข้อมูลไป Discord"):
