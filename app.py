@@ -1,11 +1,12 @@
 import streamlit as st
 import requests
+import uuid
 
 # --- ตั้งค่าหน้าเว็บ ---
 st.set_page_config(page_title="Shark Community Medic", page_icon="🚑")
 st.title("🚑 ระบบจัดการสถานะแพทย์ Shark Community")
 
-# --- ตั้งค่า Webhook URL (นำ URL ของคุณมาใส่ตรงนี้) ---
+# --- ตั้งค่า Webhook URL ---
 WEBHOOK_URL = "https://discord.com/api/webhooks/1510897665020530781/thYbEXxxQkhbdLaSPPqVUCIUhyXP7ynp4gJs4By-Q92HS2MpqZQqoIbLDNkBYSyrrlux"
 
 STATUS_OPTIONS = ["✅ พร้อม", "⏳ คิวต่อไป", "🛠️ เคสแก้", "💤 เหม่อ / รี ตม.", "🎮 ไปกิจกรรม"]
@@ -15,21 +16,21 @@ if 'doctors' not in st.session_state: st.session_state.doctors = []
 if 'runner_name' not in st.session_state: st.session_state.runner_name = ""
 
 # --- ฟังก์ชัน Callback สำหรับอัปเดตสถานะ ---
-def update_status(index):
-    # ดึงค่าจาก Selectbox ที่เพิ่งเปลี่ยน
-    new_val = st.session_state[f"s_{index}"]
+def update_status(doctor_id):
+    # ดึงค่าที่เลือกใหม่จาก Key เฉพาะตัว
+    new_val = st.session_state[f"s_{doctor_id}"]
     
     # Logic: ถ้าเลือก "คิวต่อไป" ให้คนอื่นที่เหลือกลายเป็น "✅ พร้อม" ทันที
     if new_val == "⏳ คิวต่อไป":
-        for i in range(len(st.session_state.doctors)):
-            if i != index and st.session_state.doctors[i]['status'] == "⏳ คิวต่อไป":
-                st.session_state.doctors[i]['status'] = "✅ พร้อม"
+        for doc in st.session_state.doctors:
+            if doc['id'] != doctor_id and doc['status'] == "⏳ คิวต่อไป":
+                doc['status'] = "✅ พร้อม"
     
     # อัปเดตสถานะของหมอคนนั้น
-    st.session_state.doctors[index]['status'] = new_val
-    
-    # บังคับ Rerun เพื่อให้ UI อัปเดตข้อมูลใหม่ทันที
-    st.rerun()
+    for doc in st.session_state.doctors:
+        if doc['id'] == doctor_id:
+            doc['status'] = new_val
+            break
 
 # --- ส่วน Sidebar ---
 with st.sidebar:
@@ -48,7 +49,11 @@ with st.sidebar:
 # --- ส่วนเพิ่มรายชื่อ ---
 new_name = st.text_input("เพิ่มชื่อหมอ:")
 if st.button("เพิ่มชื่อ") and new_name:
-    st.session_state.doctors.append({"name": new_name, "status": "✅ พร้อม"})
+    st.session_state.doctors.append({
+        "id": str(uuid.uuid4()), 
+        "name": new_name, 
+        "status": "✅ พร้อม"
+    })
     st.rerun()
 
 st.markdown("---")
@@ -62,18 +67,17 @@ for i, doc in enumerate(st.session_state.doctors):
     col1.write(f"{i+1}")
     col2.write(f"{doc['name']}")
     
-    # ใช้ Key เฉพาะตัวสำหรับ Selectbox แต่ละคน
     col3.selectbox(
         "สถานะ", 
         STATUS_OPTIONS, 
         index=STATUS_OPTIONS.index(doc['status']), 
-        key=f"s_{i}", 
+        key=f"s_{doc['id']}", 
         label_visibility="collapsed",
         on_change=update_status,
-        args=(i,)
+        args=(doc['id'],)
     )
     
-    if col4.button("ลบ", key=f"d_{i}"):
+    if col4.button("ลบ", key=f"d_{doc['id']}"):
         st.session_state.doctors.pop(i)
         st.rerun()
 
@@ -87,7 +91,7 @@ if st.button("🚀 ส่งข้อมูลไป Discord"):
     elif queue_count > 1:
         st.error(f"❌ ผิดพลาด! มีคนเป็น 'คิวต่อไป' {queue_count} คน (ต้องมีแค่ 1)")
     else:
-        # ฟอร์แมตข้อความแบบเป๊ะๆ เหมือนตัวอย่าง image_0a44a7.png
+        # ฟอร์แมตข้อความตามที่ระบุ
         message = "🚑 **สถานะทีมแพทย์ Shark Community**\n"
         message += "```\n"
         message += f"👨‍⚕️ ผู้รันคิว: {st.session_state.runner_name}\n\n"
