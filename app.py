@@ -60,8 +60,8 @@ cols = st.columns([0.5, 3, 2, 1.5, 0.8])
 cols[0].write("**No.**")
 cols[1].write("**ชื่อแพทย์**")
 cols[2].write("**สถานะ**")
-cols[3].write("**ลำดับ**")
-cols[4].write("**ลบ**")
+# cols[3].write("**ลำดับ**")
+cols[3].write("**ลบ**")
 
 for i, doc in enumerate(st.session_state.doctors):
     c1, c2, c3, c4, c5 = st.columns([0.5, 3, 2, 1.5, 0.8])
