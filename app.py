@@ -84,7 +84,7 @@ for i, doc in enumerate(st.session_state.doctors):
     #     st.rerun()
         
     # ปุ่มลบ
-    if c5.button("🗑️", key=f"d_{doc['id']}"):
+    if c4.button("🗑️", key=f"d_{doc['id']}"):
         st.session_state.doctors.pop(i)
         st.rerun()
 
