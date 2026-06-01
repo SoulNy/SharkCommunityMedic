@@ -90,7 +90,7 @@ if st.button("🚀 ส่งข้อมูลไป Discord"):
         # ฟอร์แมตข้อความแบบเป๊ะๆ เหมือนตัวอย่าง image_0a44a7.png
         message = "🚑 **สถานะทีมแพทย์ Shark Community**\n"
         message += "```\n"
-        message += f"👨‍⚕️ ผู้รันคิว: {st.session_state.runner_name}"
+        message += f"👨‍⚕️ ผู้รันคิว: {st.session_state.runner_name}\n"
         message += f"{'No.':<4} {'ชื่อแพทย์':<15} | {'สถานะ':<10}\n"
         message += "-" * 40 + "\n"
         
