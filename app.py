@@ -1,16 +1,18 @@
 import streamlit as st
+import requests
+import json
 
 # ตั้งค่าหน้าเว็บ
 st.set_page_config(page_title="Shark Community Medic", page_icon="🚑")
 st.title("🚑 ระบบจัดการสถานะแพทย์ Shark Community")
 
+# --- ตั้งค่า Webhook ตรงนี้ ---
+WEBHOOK_URL = "ใส่_WEBHOOK_URL_ของคุณที่นี่"
+
 STATUS_OPTIONS = ["✅ พร้อม", "⏳ คิวต่อไป", "🛠️ เคสแก้", "💤 เหม่อ / รี ตม.", "🎮 ไปกิจกรรม"]
 
-# กำหนดค่าเริ่มต้นใน session_state
-if 'doctors' not in st.session_state: 
-    st.session_state.doctors = []
-if 'runner_name' not in st.session_state: 
-    st.session_state.runner_name = ""
+if 'doctors' not in st.session_state: st.session_state.doctors = []
+if 'runner_name' not in st.session_state: st.session_state.runner_name = ""
 
 # --- Sidebar ---
 with st.sidebar:
@@ -43,27 +45,16 @@ for i, doc in enumerate(st.session_state.doctors):
     col1.write(f"{i+1}")
     col2.write(f"{doc['name']}")
     
-    # ดึงค่าสถานะปัจจุบัน
     current_status = doc['status']
+    new_status = col3.selectbox("สถานะ", STATUS_OPTIONS, index=STATUS_OPTIONS.index(current_status), key=f"s_{i}", label_visibility="collapsed")
     
-    # เลือกสถานะใหม่
-    new_status = col3.selectbox(
-        "สถานะ", 
-        STATUS_OPTIONS, 
-        index=STATUS_OPTIONS.index(current_status), 
-        key=f"s_{i}", 
-        label_visibility="collapsed"
-    )
-    
-    # Logic: ถ้าเลือก "คิวต่อไป" ให้คนอื่นที่เหลือเป็น "พร้อม" ทันที
     if new_status != current_status:
         if new_status == "⏳ คิวต่อไป":
             for j in range(len(st.session_state.doctors)):
                 if j != i and st.session_state.doctors[j]['status'] == "⏳ คิวต่อไป":
                     st.session_state.doctors[j]['status'] = "✅ พร้อม"
-        
         doc['status'] = new_status
-        st.rerun() # รีโหลดหน้าจอเพื่ออัปเดตข้อมูล
+        st.rerun()
         
     if col4.button("ลบ", key=f"d_{i}"):
         st.session_state.doctors.pop(i)
@@ -79,6 +70,18 @@ if st.button("🚀 ส่งข้อมูลไป Discord"):
     elif queue_count > 1:
         st.error(f"❌ ผิดพลาด! มีคนเป็น 'คิวต่อไป' {queue_count} คน (ต้องมีแค่ 1)")
     else:
-        # ส่วนเชื่อมต่อ Discord ของคุณ
-        st.success("ข้อมูลถูกต้อง! กำลังส่งไปยัง Discord...")
-        # requests.post(webhook_url, json={...})
+        # เตรียมข้อความที่จะส่ง
+        message = f"🚑 **อัปเดตสถานะแพทย์ - โดย {st.session_state.runner_name}**\n"
+        for doc in st.session_state.doctors:
+            message += f"{doc['status']} {doc['name']}\n"
+        
+        # ส่ง Discord
+        data = {"content": message}
+        try:
+            response = requests.post(WEBHOOK_URL, json=data)
+            if response.status_code == 204:
+                st.success("✅ ส่งข้อมูลไป Discord เรียบร้อยแล้ว!")
+            else:
+                st.error(f"เกิดข้อผิดพลาดในการส่ง: {response.status_code}")
+        except Exception as e:
+            st.error(f"ไม่สามารถเชื่อมต่อ Discord ได้: {e}")
