@@ -7,7 +7,7 @@ st.set_page_config(page_title="Shark Community Medic", page_icon="🚑", layout=
 st.title("🚑 ระบบจัดการสถานะแพทย์ Shark Community")
 
 # --- ตั้งค่า Webhook URL ---
-WEBHOOK_URL = "https://discord.com/api/webhooks/1510897665020530781/thYbEXxxQkhbdLaSPPqVUCIUhyXP7ynp4gJs4By-Q92HS2MpqZQqoIbLDNkBYSyrrlux"
+WEBHOOK_URL = "https://discord.com/api/webhooks/1510984777648574484/8naHbPVtceUvobVERxizU_8H_2DrRO17ZoqXw_g3pbcD8_MxBAFYUOCw2nnK62cBOuWW"
 
 STATUS_OPTIONS = ["✅ พร้อม", "⏳ คิวต่อไป", "🛠️ เคสแก้", "💤 เหม่อ / รี ตม.", "🎮 ไปกิจกรรม"]
 
