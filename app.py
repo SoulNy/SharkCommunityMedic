@@ -74,14 +74,14 @@ for i, doc in enumerate(st.session_state.doctors):
     c3.selectbox("สถานะ", STATUS_OPTIONS, index=STATUS_OPTIONS.index(doc['status']), 
                  key=f"s_{doc['id']}", label_visibility="collapsed", on_change=update_status, args=(doc['id'],))
     
-    # ปุ่มเลื่อนลำดับ
-    move_cols = c4.columns(2)
-    if move_cols[0].button("🔼", key=f"up_{doc['id']}") and i > 0:
-        st.session_state.doctors[i], st.session_state.doctors[i-1] = st.session_state.doctors[i-1], st.session_state.doctors[i]
-        st.rerun()
-    if move_cols[1].button("🔽", key=f"dn_{doc['id']}") and i < len(st.session_state.doctors) - 1:
-        st.session_state.doctors[i], st.session_state.doctors[i+1] = st.session_state.doctors[i+1], st.session_state.doctors[i]
-        st.rerun()
+    # # ปุ่มเลื่อนลำดับ
+    # move_cols = c4.columns(2)
+    # if move_cols[0].button("🔼", key=f"up_{doc['id']}") and i > 0:
+    #     st.session_state.doctors[i], st.session_state.doctors[i-1] = st.session_state.doctors[i-1], st.session_state.doctors[i]
+    #     st.rerun()
+    # if move_cols[1].button("🔽", key=f"dn_{doc['id']}") and i < len(st.session_state.doctors) - 1:
+    #     st.session_state.doctors[i], st.session_state.doctors[i+1] = st.session_state.doctors[i+1], st.session_state.doctors[i]
+    #     st.rerun()
         
     # ปุ่มลบ
     if c5.button("🗑️", key=f"d_{doc['id']}"):
