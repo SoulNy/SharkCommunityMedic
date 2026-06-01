@@ -72,8 +72,7 @@ for i, doc in enumerate(st.session_state.doctors):
         st.session_state.doctors.pop(i)
         st.rerun()
 
-# --- ส่วนส่ง Discord ---
-st.markdown("---")
+# --- ส่วนส่ง Discord (แบบจัดฟอร์แมตเป๊ะ) ---
 if st.button("🚀 ส่งข้อมูลไป Discord"):
     queue_count = sum(1 for d in st.session_state.doctors if d['status'] == "⏳ คิวต่อไป")
     
@@ -82,10 +81,20 @@ if st.button("🚀 ส่งข้อมูลไป Discord"):
     elif queue_count > 1:
         st.error(f"❌ ผิดพลาด! มีคนเป็น 'คิวต่อไป' {queue_count} คน (ต้องมีแค่ 1)")
     else:
-        # เตรียมข้อความที่จะส่ง
-        message = f"🚑 **อัปเดตสถานะแพทย์ - โดย {st.session_state.runner_name}**\n"
-        for doc in st.session_state.doctors:
-            message += f"{doc['status']} {doc['name']}\n"
+        # เริ่มต้น Message ด้วย Header
+        message = "🚑 **สถานะทีมแพทย์ Shark Community**\n"
+        message += "```\n"
+        message += f"{'No.':<4} {'ชื่อแพทย์':<15} | {'สถานะ':<10}\n"
+        message += "-" * 40 + "\n"
+        
+        # เพิ่มข้อมูลแต่ละคน
+        for i, doc in enumerate(st.session_state.doctors):
+            # ใช้ ljust หรือการจัดฟอร์แมต string เพื่อให้ระยะห่างเท่ากัน
+            # ปรับตัวเลขตามความเหมาะสมของชื่อ
+            name = doc['name'] if len(doc['name']) < 12 else doc['name'][:9] + "..."
+            message += f"{i+1:<4} {name:<15} | {doc['status']}\n"
+        
+        message += "```"
         
         # ส่ง Discord
         data = {"content": message}
