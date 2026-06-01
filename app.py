@@ -10,7 +10,7 @@ STATUS_OPTIONS = ["✅ พร้อม", "⏳ คิวต่อไป", "🛠�
 if 'doctors' not in st.session_state: st.session_state.doctors = []
 if 'runner_name' not in st.session_state: st.session_state.runner_name = ""
 
-# Sidebar สำหรับคนรันคิว
+# Sidebar
 with st.sidebar:
     st.subheader("⚙️ ตั้งค่ารันคิว")
     if not st.session_state.runner_name:
@@ -34,35 +34,49 @@ if st.button("เพิ่มชื่อ"):
         st.session_state.doctors.append({"name": new_name, "status": "✅ พร้อม"})
         st.rerun()
 
-st.subheader("รายชื่อแพทย์")
+# --- ส่วนแสดงตาราง ---
+st.write(f"**แพทย์รันคิว :** {st.session_state.runner_name if st.session_state.runner_name else 'ยังไม่มีผู้รัน'}")
+st.markdown("---")
+
+# หัวตาราง
+head1, head2, head3 = st.columns([1, 4, 3])
+head1.write("**No.**")
+head2.write("**ชื่อแพทย์**")
+head3.write("**สถานะ**")
+
+# รายชื่อแพทย์
 for i, doc in enumerate(st.session_state.doctors):
-    col_name, col_status, col_del = st.columns([3, 3, 1])
-    col_name.write(f"**{i+1}. {doc['name']}**")
+    col1, col2, col3, col4 = st.columns([1, 4, 3, 1])
+    
+    col1.write(f"{i+1}")
+    col2.write(f"{doc['name']}")
     
     old_status = doc['status']
-    new_status = col_status.selectbox("สถานะ", STATUS_OPTIONS, index=STATUS_OPTIONS.index(old_status), key=f"s_{i}", label_visibility="collapsed")
+    new_status = col3.selectbox("สถานะ", STATUS_OPTIONS, index=STATUS_OPTIONS.index(old_status), key=f"s_{i}", label_visibility="collapsed")
     
-    # Logic: ถ้าเลือก "คิวต่อไป" ให้คนอื่นเป็น "พร้อม"
+    # Logic: "คิวต่อไป" มีได้คนเดียว
     if new_status != old_status:
         if new_status == "⏳ คิวต่อไป":
             for j, d in enumerate(st.session_state.doctors):
                 if i != j and d['status'] == "⏳ คิวต่อไป":
                     st.session_state.doctors[j]['status'] = "✅ พร้อม"
-        
         doc['status'] = new_status
         st.rerun()
     
-    if col_del.button("ลบ", key=f"d_{i}"):
+    if col4.button("ลบ", key=f"d_{i}"):
         st.session_state.doctors.pop(i)
         st.rerun()
 
+st.markdown("---")
 if st.button("🚀 ส่งข้อมูลไป Discord"):
     if not st.session_state.runner_name:
         st.error("ต้องมีชื่อผู้รันคิวก่อนถึงจะส่งได้ครับ!")
     else:
         content = f"🚑 **สถานะทีมแพทย์ (อัปเดตโดย: {st.session_state.runner_name})**\n```\n"
-        for doc in st.session_state.doctors:
-            content += f"{doc['name']} : {doc['status']}\n"
+        content += f"{'No.':<4} {'ชื่อแพทย์':<15} | {'สถานะ'}\n"
+        content += "-"*40 + "\n"
+        for i, doc in enumerate(st.session_state.doctors):
+            content += f"{i+1:<4} {doc['name']:<15} | {doc['status']}\n"
         content += "```"
         requests.post(webhook_url, json={"content": content})
         st.success("ส่งข้อมูลไป Discord เรียบร้อย!")
