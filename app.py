@@ -1,7 +1,6 @@
 import streamlit as st
 import requests
 import uuid
-import time
 
 # --- ตั้งค่าหน้าเว็บ ---
 st.set_page_config(page_title="Shark Community Medic", page_icon="🚑", layout="wide")
@@ -19,6 +18,7 @@ if 'runner_name' not in st.session_state: st.session_state.runner_name = ""
 # --- ฟังก์ชัน Callback สำหรับอัปเดตสถานะ ---
 def update_status(doctor_id):
     new_val = st.session_state[f"s_{doctor_id}"]
+    # Logic: ถ้าเลือก "คิวต่อไป" ให้คนอื่นที่เหลือกลายเป็น "✅ พร้อม" ทันที
     if new_val == "⏳ คิวต่อไป":
         for doc in st.session_state.doctors:
             if doc['id'] != doctor_id and doc['status'] == "⏳ คิวต่อไป":
@@ -49,28 +49,22 @@ if st.button("เพิ่มชื่อ") and new_name:
     st.session_state.doctors.append({
         "id": str(uuid.uuid4()), 
         "name": new_name, 
-        "status": "✅ พร้อม",
-        "sleep_start": None,
-        "alert_sent": False
+        "status": "✅ พร้อม"
     })
     st.rerun()
 
 st.markdown("---")
 
 # --- ตารางแสดงผล ---
-cols = st.columns([0.5, 3, 2, 1, 0.8])
+cols = st.columns([0.5, 3, 2, 1.5, 0.8])
 cols[0].write("**No.**")
 cols[1].write("**ชื่อแพทย์**")
 cols[2].write("**สถานะ**")
-cols[3].write("**เหม่อ/รี**")
-cols[4].write("**ลบ**")
+# cols[3].write("**ลำดับ**")
+cols[3].write("**ลบ**")
 
 for i, doc in enumerate(st.session_state.doctors):
-    # ป้องกัน error กรณีไม่มี key
-    if 'sleep_start' not in doc: doc['sleep_start'] = None
-    if 'alert_sent' not in doc: doc['alert_sent'] = False
-    
-    c1, c2, c3, c4, c5 = st.columns([0.5, 3, 2, 1, 0.8])
+    c1, c2, c3, c4, c5 = st.columns([0.5, 3, 2, 1.5, 0.8])
     c1.write(f"{i+1}")
     
     # แก้ไขชื่อแบบ Inline
@@ -79,36 +73,22 @@ for i, doc in enumerate(st.session_state.doctors):
     # เลือกสถานะ
     c3.selectbox("สถานะ", STATUS_OPTIONS, index=STATUS_OPTIONS.index(doc['status']), 
                  key=f"s_{doc['id']}", label_visibility="collapsed", on_change=update_status, args=(doc['id'],))
+    
+    # # ปุ่มเลื่อนลำดับ
+    # move_cols = c4.columns(2)
+    # if move_cols[0].button("🔼", key=f"up_{doc['id']}") and i > 0:
+    #     st.session_state.doctors[i], st.session_state.doctors[i-1] = st.session_state.doctors[i-1], st.session_state.doctors[i]
+    #     st.rerun()
+    # if move_cols[1].button("🔽", key=f"dn_{doc['id']}") and i < len(st.session_state.doctors) - 1:
+    #     st.session_state.doctors[i], st.session_state.doctors[i+1] = st.session_state.doctors[i+1], st.session_state.doctors[i]
+    #     st.rerun()
         
-    # ปุ่มเหม่อ/รีตม
-    if c4.button("💤" if not doc['sleep_start'] else "⏰", key=f"sleep_{doc['id']}"):
-        if not doc['sleep_start']:
-            doc['sleep_start'] = time.time()
-            doc['status'] = "💤 เหม่อ / รี ตม."
-            doc['alert_sent'] = False
-        else:
-            doc['sleep_start'] = None
-            doc['status'] = "✅ พร้อม"
-        st.rerun()
-        
-    # เช็คเวลาครบ 15 นาที
-    if doc['sleep_start']:
-        elapsed = time.time() - doc['sleep_start']
-        if elapsed >= 900: # 900 วินาที = 15 นาที
-            c3.error("🚨 หมดเวลา!")
-            if not doc['alert_sent']:
-                requests.post(WEBHOOK_URL, json={"content": f"⚠️ หมอ {doc['name']} หมดเวลาเหม่อ/รีตม. แล้วครับ!"})
-                doc['alert_sent'] = True
-        else:
-            remaining = int(15 - (elapsed / 60))
-            c3.caption(f"เหลือ {remaining} นาที")
-
     # ปุ่มลบ
-    if c5.button("🗑️", key=f"d_{doc['id']}"):
+    if c4.button("🗑️", key=f"d_{doc['id']}"):
         st.session_state.doctors.pop(i)
         st.rerun()
 
-# --- ส่วนส่งข้อมูลไป Discord (ให้ใช้ส่วนนี้แทนที่อันเดิมครับ) ---
+# --- ส่วนส่งข้อมูลไป Discord ---
 st.markdown("---")
 if st.button("🚀 ส่งข้อมูลไป Discord"):
     queue_count = sum(1 for d in st.session_state.doctors if d['status'] == "⏳ คิวต่อไป")
@@ -116,30 +96,23 @@ if st.button("🚀 ส่งข้อมูลไป Discord"):
     if not st.session_state.runner_name:
         st.error("กรุณาระบุชื่อผู้รันคิวก่อน!")
     elif queue_count > 1:
-        st.error(f"❌ ผิดพลาด! มีคนเป็น 'คิวต่อไป' {queue_count} คน")
+        st.error(f"❌ ผิดพลาด! มีคนเป็น 'คิวต่อไป' {queue_count} คน (ต้องมีแค่ 1)")
     else:
-        # เตรียมข้อมูลสำหรับ Embed
-        fields = []
-        for i, doc in enumerate(st.session_state.doctors):
-            fields.append({
-                "name": f"{i+1}. {doc['name']}",
-                "value": f"สถานะ: {doc['status']}",
-                "inline": False # ถ้าอยากให้เรียงต่อกันเป็นแถวเดียว ให้เปลี่ยนเป็น True
-            })
+        message = "🚑 **สถานะทีมแพทย์ Shark Community**\n"
+        message += "```\n"
+        message += f"👨‍⚕️ ผู้รันคิว: {st.session_state.runner_name}\n\n"
+        message += f"{'No.':<4} {'ชื่อแพทย์':<15} | {'สถานะ':<10}\n"
+        message += "-" * 40 + "\n"
         
-        embed = {
-            "title": "🚑 สถานะทีมแพทย์ Shark Community",
-            "description": f"👨‍⚕️ ผู้รันคิว: **{st.session_state.runner_name}**",
-            "color": 3447003, # สีน้ำเงิน
-            "fields": fields,
-            "footer": {"text": f"อัปเดตล่าสุด: {time.strftime('%H:%M:%S')}"}
-        }
+        for i, doc in enumerate(st.session_state.doctors):
+            message += f"{i+1:<4} {doc['name']:<15} | {doc['status']}\n"
+        
+        message += "```"
         
         try:
-            # ส่งผ่าน Webhook โดยใช้ keys 'embeds' แทน 'content'
-            response = requests.post(WEBHOOK_URL, json={"embeds": [embed]})
+            response = requests.post(WEBHOOK_URL, json={"content": message})
             if response.status_code == 204:
-                st.success("✅ ส่งข้อมูลไป Discord (Embed) เรียบร้อยแล้ว!")
+                st.success("✅ ส่งข้อมูลไป Discord เรียบร้อยแล้ว!")
             else:
                 st.error(f"เกิดข้อผิดพลาดในการส่ง: {response.status_code}")
         except Exception as e:
