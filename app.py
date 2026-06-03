@@ -108,7 +108,7 @@ for i, doc in enumerate(st.session_state.doctors):
         st.session_state.doctors.pop(i)
         st.rerun()
 
-# --- ส่วนส่งข้อมูลไป Discord ---
+# --- ส่วนส่งข้อมูลไป Discord (ให้ใช้ส่วนนี้แทนที่อันเดิมครับ) ---
 st.markdown("---")
 if st.button("🚀 ส่งข้อมูลไป Discord"):
     queue_count = sum(1 for d in st.session_state.doctors if d['status'] == "⏳ คิวต่อไป")
@@ -118,19 +118,28 @@ if st.button("🚀 ส่งข้อมูลไป Discord"):
     elif queue_count > 1:
         st.error(f"❌ ผิดพลาด! มีคนเป็น 'คิวต่อไป' {queue_count} คน")
     else:
-        message = "🚑 **สถานะทีมแพทย์ Shark Community**\n"
-        message += "```\n"
-        message += f"👨‍⚕️ ผู้รันคิว: {st.session_state.runner_name}\n\n"
-        message += f"{'No.':<4} {'ชื่อแพทย์':<17} | {'สถานะ':<10}\n"
-        message += "-" * 40 + "\n"
+        # เตรียมข้อมูลสำหรับ Embed
+        fields = []
         for i, doc in enumerate(st.session_state.doctors):
-            message += f"{i+1:<4} {doc['name']:<15} | {doc['status']}\n"
-        message += "```"
+            fields.append({
+                "name": f"{i+1}. {doc['name']}",
+                "value": f"สถานะ: {doc['status']}",
+                "inline": False # ถ้าอยากให้เรียงต่อกันเป็นแถวเดียว ให้เปลี่ยนเป็น True
+            })
+        
+        embed = {
+            "title": "🚑 สถานะทีมแพทย์ Shark Community",
+            "description": f"👨‍⚕️ ผู้รันคิว: **{st.session_state.runner_name}**",
+            "color": 3447003, # สีน้ำเงิน
+            "fields": fields,
+            "footer": {"text": f"อัปเดตล่าสุด: {time.strftime('%H:%M:%S')}"}
+        }
         
         try:
-            response = requests.post(WEBHOOK_URL, json={"content": message})
+            # ส่งผ่าน Webhook โดยใช้ keys 'embeds' แทน 'content'
+            response = requests.post(WEBHOOK_URL, json={"embeds": [embed]})
             if response.status_code == 204:
-                st.success("✅ ส่งข้อมูลไป Discord เรียบร้อยแล้ว!")
+                st.success("✅ ส่งข้อมูลไป Discord (Embed) เรียบร้อยแล้ว!")
             else:
                 st.error(f"เกิดข้อผิดพลาดในการส่ง: {response.status_code}")
         except Exception as e:
