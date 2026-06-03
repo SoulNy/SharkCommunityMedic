@@ -6,9 +6,8 @@ import json
 from datetime import datetime
 
 # --- ตั้งค่า Bot ---
-# นำ Token และ Channel ID ของคุณมาใส่ตรงนี้
-BOT_TOKEN = "ใส่_TOKEN_ของคุณที่นี่"
-CHANNEL_ID = "ใส่_CHANNEL_ID_ที่นี่"
+BOT_TOKEN = "MTUxMTU5MDkwMDMwMjg3Njc5Mg.GMI7Pt.Bkyp7rRtroJ2YMtobpnwMsHOizGOCuU_JaIxw4"
+CHANNEL_ID = "1511587536298967083"
 
 # --- ตั้งค่าหน้าเว็บ ---
 st.set_page_config(page_title="Shark Community Medic", page_icon="🚑", layout="wide")
@@ -34,9 +33,31 @@ def update_status(doctor_id):
 
 # --- Sidebar ---
 with st.sidebar:
-    if st.button("ออกจากระบบ"):
-        st.session_state.runner_name = ""
-        st.rerun()
+    st.subheader("⚙️ ตั้งค่ารันคิว")
+    if not st.session_state.runner_name:
+        runner_input = st.text_input("ชื่อของคุณ:")
+        if st.button("ยืนยันตัวตน"):
+            st.session_state.runner_name = runner_input
+            st.rerun()
+    else:
+        st.success(f"👨‍⚕️ ผู้รันคิว: {st.session_state.runner_name}")
+        if st.button("ออกจากระบบ"):
+            st.session_state.runner_name = ""
+            st.rerun()
+
+# --- ส่วนเพิ่มรายชื่อ (ที่หายไป) ---
+new_name = st.text_input("เพิ่มชื่อหมอ:")
+if st.button("เพิ่มชื่อ") and new_name:
+    st.session_state.doctors.append({
+        "id": str(uuid.uuid4()), 
+        "name": new_name, 
+        "status": "✅ พร้อม",
+        "sleep_start": None,
+        "alert_sent": False
+    })
+    st.rerun()
+
+st.markdown("---")
 
 # --- ตารางแสดงผล ---
 cols = st.columns([0.5, 3, 2, 1, 0.8])
@@ -53,7 +74,6 @@ for i, doc in enumerate(st.session_state.doctors):
     c3.selectbox("สถานะ", STATUS_OPTIONS, index=STATUS_OPTIONS.index(doc['status']), 
                  key=f"s_{doc['id']}", label_visibility="collapsed", on_change=update_status, args=(doc['id'],))
     
-    # ปุ่มเหม่อ
     if c4.button("💤" if not doc['sleep_start'] else "⏰", key=f"sleep_{doc['id']}"):
         if not doc['sleep_start']:
             doc['sleep_start'] = time.time(); doc['status'] = "💤 เหม่อ / รี ตม."; doc['alert_sent'] = False
@@ -61,14 +81,14 @@ for i, doc in enumerate(st.session_state.doctors):
             doc['sleep_start'] = None; doc['status'] = "✅ พร้อม"
         st.rerun()
         
-    # เช็ค 15 นาที
     if doc['sleep_start']:
         elapsed = time.time() - doc['sleep_start']
         if elapsed >= 900:
             c3.error("🚨 หมดเวลา!")
             if not doc['alert_sent']:
+                # ใช้การส่งแบบ utf-8 โดยตรง
                 requests.post(f"https://discord.com/api/v10/channels/{CHANNEL_ID}/messages", 
-                              headers={"Authorization": f"Bot {BOT_TOKEN}", "Content-Type": "application/json"},
+                              headers={"Authorization": f"Bot {BOT_TOKEN}", "Content-Type": "application/json; charset=utf-8"},
                               data=json.dumps({"content": f"⚠️ หมอ {doc['name']} หมดเวลาเหม่อ/รีตม. แล้ว!"}, ensure_ascii=False).encode('utf-8'))
                 doc['alert_sent'] = True
         else:
@@ -77,7 +97,7 @@ for i, doc in enumerate(st.session_state.doctors):
     if c5.button("🗑️", key=f"d_{doc['id']}"):
         st.session_state.doctors.pop(i); st.rerun()
 
-# --- ส่วนส่งข้อมูลไป Discord แบบแก้ไขข้อความ (UTF-8) ---
+# --- ส่วนส่งข้อมูลไป Discord ---
 st.markdown("---")
 if st.button("🚀 อัปเดตตารางใน Discord"):
     message = "🚑 **สถานะทีมแพทย์ Shark Community**\n"
@@ -88,8 +108,9 @@ if st.button("🚀 อัปเดตตารางใน Discord"):
         message += f"{i+1:<4} {doc['name']:<15} | {doc['status']}\n"
     message += "```"
     
+    # ใช้วิธีการส่งข้อมูลแบบ JSON ที่กำหนด charset เป็น utf-8
     payload = json.dumps({"content": message}, ensure_ascii=False).encode('utf-8')
-    headers = {"Authorization": f"Bot {BOT_TOKEN}", "Content-Type": "application/json"}
+    headers = {"Authorization": f"Bot {BOT_TOKEN}", "Content-Type": "application/json; charset=utf-8"}
     
     try:
         if st.session_state.message_id is None:
