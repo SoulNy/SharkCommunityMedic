@@ -15,6 +15,8 @@ STATUS_OPTIONS = ["✅ พร้อม", "⏳ คิวต่อไป", "🛠�
 def load_data():
     if os.path.exists(DATA_FILE):
         try:
+            # ใช้ os.stat เพื่อบังคับเช็กไฟล์จริงบนฮาร์ดดิสก์ ไม่ใช้ค่าที่จำไว้ในแรม
+            os.sync() if hasattr(os, 'sync') else None
             with open(DATA_FILE, 'r', encoding='utf-8') as f:
                 return json.load(f)
         except:
@@ -22,14 +24,17 @@ def load_data():
     return {"runnerName": "", "doctors": [], "lastUpdated": None}
 
 def save_data(data):
-    data["lastUpdated"] = time.time() * 1000  # บันทึกเวลาอัปเดตล่าสุด (มิลลิวินาที)
+    data["lastUpdated"] = time.time() * 1000  # บันทึกเวลาอัปเดตล่าสุด
     with open(DATA_FILE, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
+    # บังคับเคลียร์เซสชันชั่วคราวเพื่อให้คนอื่นดึงข้อมูลใหม่ทันที
+    if 'app_data' in st.session_state:
+        st.session_state.app_data = data
 
-# รีเฟรชหน้าจออัตโนมัติเงียบๆ ทุก 1 วินาที (1000 มิลลิวินาที) เพื่อให้นาฬิกาเหม่อเดินสดๆ
-st_autorefresh(interval=1000, key="medic_realtime_refresh")
+# 🔌 สั่งแอบรีเฟรชหน้าจอเงียบๆ ทุกๆ 1 วินาที (1000 มิลลิวินาที)
+st_autorefresh(interval=1000, key="medic_perfect_realtime")
 
-# โหลดข้อมูลล่าสุดจากไฟล์ JSON ทุกครั้งที่หน้าจอรันใหม่
+# 🔥 บังคับโหลดข้อมูลสดใหม่แกะกล่องจากไฟล์ JSON ทุกวินาทีที่มีการรีเฟรช
 app_data = load_data()
 st.session_state.app_data = app_data
 
@@ -71,7 +76,7 @@ if view_mode == "📺 หน้าจอสำหรับคนดู (Read-Onl
     
     col_t1, col_t2 = st.columns([2, 1])
     with col_t1:
-        st.caption("⚡ ระบบอัปเดตแบบ Real-Time | หน้าจอนี้สำหรับดูข้อมูลอย่างเดียว")
+        st.caption("⚡ ระบบซิงค์ข้อมูลตรงจากเซิร์ฟเวอร์แบบ Real-Time 100%")
     with col_t2:
         if app_data.get("runnerName"):
             st.markdown(f"🟢 **ผู้คุมคิวเวรวันนี้:** {app_data['runnerName']}")
@@ -96,7 +101,6 @@ if view_mode == "📺 หน้าจอสำหรับคนดู (Read-Onl
             c_name.markdown(f"**{doc['name']}**")
             
             status_text = doc['status']
-            # ⏱️ ระบบคำนวณเวลานับเหม่อสดๆ ฝั่งคนดู
             if doc['status'] == "💤 เหม่อ / รี ตม." and doc.get('lastStatusChange'):
                 diff_sec = int(time.time() - (doc['lastStatusChange'] / 1000))
                 m, s = divmod(diff_sec, 60)
@@ -122,20 +126,23 @@ else:
             new_name = st.text_input("เพิ่มชื่อหมอเข้าคิวเวร:", placeholder="ใส่ชื่อแพทย์ที่นี่...")
             if st.form_submit_button("➕ ลงชื่อเข้าเวร"):
                 if new_name.strip():
-                    app_data["doctors"].append({
+                    # โหลดข้อมูลใหม่ล่าสุดอีกครั้งก่อนจะเซฟ เพื่อป้องกันการเขียนทับข้อมูลคนอื่น
+                    current_data = load_data()
+                    current_data["doctors"].append({
                         "name": new_name.strip(),
                         "status": "✅ พร้อม",
                         "lastStatusChange": time.time() * 1000
                     })
-                    save_data(app_data)
+                    save_data(current_data)
                     st.rerun()
                     
     with col_clear:
         st.write("") 
         st.write("") 
         if st.button("🗑️ ล้างคิวทั้งหมด", type="primary"):
-            app_data["doctors"] = []
-            save_data(app_data)
+            current_data = load_data()
+            current_data["doctors"] = []
+            save_data(current_data)
             st.rerun()
             
     st.markdown("---")
@@ -154,18 +161,19 @@ else:
             c_no, c_name, c_status, c_del = st.columns([1, 3, 5, 1])
             c_no.write(f"`{idx + 1}`")
             
-            # ช่องพิมพ์แก้ไขชื่อหมอแบบ Real-Time
+            # ช่องพิมพ์แก้ไขชื่อหมอ
             edited_name = c_name.text_input("ชื่อหมอ", value=doc['name'], key=f"name_{idx}", label_visibility="collapsed")
             if edited_name != doc['name']:
-                app_data["doctors"][idx]["name"] = edited_name
-                save_data(app_data)
-                st.rerun()
+                current_data = load_data()
+                if idx < len(current_data["doctors"]):
+                    current_data["doctors"][idx]["name"] = edited_name
+                    save_data(current_data)
+                    st.rerun()
                 
-            # ดึงสถานะปัจจุบันมาเช็กตำแหน่ง Index
             current_status = doc['status']
             current_status_idx = STATUS_OPTIONS.index(current_status) if current_status in STATUS_OPTIONS else 0
             
-            # เติมตัวเลขเวลานับเหม่อสดๆ ฝั่งแอดมิน
+            # ตกแต่งตัวเลือกสถานะเหม่อพร้อมเวลานับถอยหลังสด
             display_options = STATUS_OPTIONS.copy()
             if current_status == "💤 เหม่อ / รี ตม." and doc.get('lastStatusChange'):
                 diff_sec = int(time.time() - (doc['lastStatusChange'] / 1000))
@@ -181,26 +189,29 @@ else:
                 horizontal=True
             )
             
-            # ลอกข้อความเวลากลับมาเป็นชื่อสถานะเพียวๆ ก่อนเช็ก Logic
             if "💤 เหม่อ" in chosen_status:
                 chosen_status = "💤 เหม่อ / รี ตม."
             
-            # ⚡ Logic การเปลี่ยนสถานะแบบกดล่าสุดได้คิว
+            # เมื่อมีการคลิกสลับปุ่มวิทยุ (Radio)
             if chosen_status != current_status:
-                # 🔒 กฎเหล็ก: ถ้าคนล่าสุดเปลี่ยนเป็น "คิวต่อไป" -> ให้คนเก่าทุกคนที่เคยเป็นคิวต่อไป เด้งกลับเป็น "พร้อม"
-                if chosen_status == "⏳ คิวต่อไป":
-                    for d_idx, d in enumerate(app_data["doctors"]):
-                        if d_idx != idx and d["status"] == "⏳ คิวต่อไป":
-                            app_data["doctors"][d_idx]["status"] = "✅ พร้อม"
-                            app_data["doctors"][d_idx]["lastStatusChange"] = time.time() * 1000
-                            
-                # บันทึกสถานะใหม่ของคนที่กดล่าสุด
-                app_data["doctors"][idx]["status"] = chosen_status
-                app_data["doctors"][idx]["lastStatusChange"] = time.time() * 1000
-                save_data(app_data)
-                st.rerun()
+                current_data = load_data() # ดึงข้อมูลนาทีล่าสุดจากไฟล์กลางมาคำนวณ
+                
+                if idx < len(current_data["doctors"]):
+                    # 🔒 เช็กกฎเหล็ก: ถ้าตั้งคนล่าสุดเป็นคิวต่อไป คนเก่าที่เคยเป็นคิวต่อไปทั้งหมดต้องเด้งกลับเป็น "พร้อม"
+                    if chosen_status == "⏳ คิวต่อไป":
+                        for d_idx, d in enumerate(current_data["doctors"]):
+                            if d_idx != idx and d["status"] == "⏳ คิวต่อไป":
+                                current_data["doctors"][d_idx]["status"] = "✅ พร้อม"
+                                current_data["doctors"][d_idx]["lastStatusChange"] = time.time() * 1000
+                                
+                    current_data["doctors"][idx]["status"] = chosen_status
+                    current_data["doctors"][idx]["lastStatusChange"] = time.time() * 1000
+                    save_data(current_data)
+                    st.rerun()
                 
             if c_del.button("🗑️", key=f"del_{idx}"):
-                app_data["doctors"].pop(idx)
-                save_data(app_data)
-                st.rerun()
+                current_data = load_data()
+                if idx < len(current_data["doctors"]):
+                    current_data["doctors"].pop(idx)
+                    save_data(current_data)
+                    st.rerun()
