@@ -14,7 +14,7 @@ STATUS_OPTIONS = ["✅ พร้อม", "⏳ คิวต่อไป", "🛠�
 APP_URL = "https://appwebpy-tv5hqkpzrlalag7noznbfu.streamlit.app/"
 
 # 🔗 วางลิงก์ Discord Webhook ของคุณตรงนี้ได้เลยครับ
-DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/xxxx/xxxx"
+DISCORD_WEBHOOK_URL = "https://ptb.discord.com/api/webhooks/1510984777648574484/8naHbPVtceUvobVERxizU_8H_2DrRO17ZoqXw_g3pbcD8_MxBAFYUOCw2nnK62cBOuWW"
 
 # --- ฟังก์ชันส่งการแจ้งเตือนเข้า Discord Webhook ---
 def send_to_discord(message_content, embed_title, embed_desc, color_code):
@@ -52,32 +52,10 @@ def save_data(data):
         json.dump(data, f, ensure_ascii=False, indent=4)
 
 # 🔌 สั่งแอบดึงข้อมูลรีเฟรชเงียบๆ ทุกๆ 1 วินาที เพื่อระบบ Real-Time
-st_autorefresh(interval=1000, key="medic_force_realtime_webhook_v5")
+st_autorefresh(interval=1000, key="medic_force_realtime_webhook_v6")
 
 # โหลดข้อมูลจริงล่าสุดเข้าสู่ระบบ
 app_data = load_data()
-
-# --- 💬 ฟังก์ชันสร้าง Pop-up สำหรับให้หมอลงชื่อเข้าเวรเอง ---
-@st.dialog("➕ ลงชื่อเข้าคิวเวรแพทย์")
-def register_doctor_popup():
-    st.write("กรุณาใส่ชื่อของคุณเพื่อเพิ่มรายชื่อเข้าสู่ระบบคิวกลาง")
-    name_input = st.text_input("ชื่อแพทย์:", placeholder="ตัวอย่าง: หมอเอ / Silas Shadow...")
-    
-    if st.button("ยืนยันลงชื่อ", type="primary", use_container_width=True):
-        if name_input.strip():
-            # ดึงข้อมูลล่าสุดมาอัปเดตเพื่อไม่ให้ข้อมูลทับซ้อน
-            current_data = load_data()
-            current_data["doctors"].append({
-                "name": name_input.strip(),
-                "status": "✅ พร้อม",
-                "lastStatusChange": time.time() * 1000
-            })
-            save_data(current_data)
-            st.success(f"ลงชื่อสำเร็จแล้ว! กำลังโหลดหน้าจอใหม่...")
-            time.sleep(0.5)
-            st.rerun()
-        else:
-            st.error("กรุณากรอกชื่อก่อนกดสั่งงานครับ")
 
 # ==========================================
 # 🎛️ SIDEBAR: เมนูสลับหน้าจอ และฟอร์มผู้ควบคุมคิว
@@ -151,13 +129,29 @@ if view_mode == "📺 หน้าจอสำหรับคนดู (Read-Onl
         
     st.markdown("---")
     
-    # 🔥 ส่วนที่เพิ่มใหม่: ปุ่มกดขึ้น Pop-up ในหน้าคนดู
-    col_info, col_btn = st.columns([3, 1])
-    with col_info:
-        st.write("ถ้าคุณกำลังเข้าเมืองมาปฏิบัติหน้าที่ สามารถลงชื่อเข้าคิวเวรได้ด้วยตนเองเลยครับ")
-    with col_btn:
-        if st.button("➕ ลงชื่อเข้าคิวด้วยตัวเอง", type="primary", use_container_width=True):
-            register_doctor_popup()
+    # 🛠️ ปรับปรุงใหม่: ใช้ st.expander แทน Pop-up เพื่อกันบั๊กโดนดีดหายตอนรีเฟรช 1 วิ
+    with st.expander("➕ คลิกที่นี่เพื่อลงชื่อเข้าคิวด้วยตัวเอง", expanded=False):
+        st.markdown("##### กรุณากรอกชื่อของคุณเพื่อเพิ่มรายชื่อเข้าสู่ระบบคิวกลาง")
+        
+        # ใช้ st.form ครอบไว้อีกชั้นเพื่อล็อคช่องพิมพ์ไม่ให้กระพริบตามการรีเฟรชทุก 1 วิ
+        with st.form("user_register_form", clear_on_submit=True):
+            user_name_input = st.text_input("ชื่อแพทย์:", placeholder="ตัวอย่าง: หมอเอ / Silas Shadow...")
+            submit_reg = st.form_submit_button("ยืนยันลงชื่อเข้าเวร", type="primary")
+            
+            if submit_reg:
+                if user_name_input.strip():
+                    current_data = load_data()
+                    current_data["doctors"].append({
+                        "name": user_name_input.strip(),
+                        "status": "✅ พร้อม",
+                        "lastStatusChange": time.time() * 1000
+                    })
+                    save_data(current_data)
+                    st.success(f"เพิ่มชื่อคุณ **{user_name_input.strip()}** เข้าสู่คิวเรียบร้อยแล้ว!")
+                    time.sleep(0.5)
+                    st.rerun()
+                else:
+                    st.error("กรุณากรอกชื่อก่อนกดปุ่มยืนยันครับ")
             
     st.markdown("---")
     
@@ -194,7 +188,6 @@ else:
     st.caption(f"แก้ไขล่าสุดเมื่อ: {last_up_text}")
     st.markdown("---")
     
-    # ฟอร์มเพิ่มชื่อหมอฝั่งผู้รันคิว
     col_add, col_clear = st.columns([3, 1])
     with col_add:
         with st.form("add_doctor_form", clear_on_submit=True):
