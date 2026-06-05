@@ -15,6 +15,13 @@ APP_URL = "https://appwebpy-tv5hqkpzrlalag7noznbfu.streamlit.app/"
 # 🔗 วางลิงก์ Discord Webhook ของคุณตรงนี้ได้เลยครับ
 DISCORD_WEBHOOK_URL = "https://ptb.discord.com/api/webhooks/1510984777648574484/8naHbPVtceUvobVERxizU_8H_2DrRO17ZoqXw_g3pbcD8_MxBAFYUOCw2nnK62cBOuWW"
 
+# 🔌 เปิดระบบ Autorefresh บังคับให้รันโค้ดใหม่ทุกๆ 1 วินาที เพื่อให้นาฬิกานับเวลาเหม่อวิ่งเรียลไทม์
+try:
+    from streamlit_autorefresh import st_autorefresh
+    st_autorefresh(interval=1000, key="medic_realtime_clock_v10")
+except Exception as e:
+    st.warning("⚠️ แนะนำให้ติดตั้ง streamlit-autorefresh เพื่อระบบเวลาที่เรียลไทม์")
+
 # --- ฟังก์ชันจัดการเวลาไทย (GMT+7) ---
 def get_thailand_time():
     return datetime.utcnow() + timedelta(hours=7)
@@ -56,15 +63,6 @@ def save_data(data):
     data["lastUpdated"] = time.time() * 1000
     with open(DATA_FILE, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
-
-# 🔌 ใช้ระบบตรวจจับเงียบๆ เพื่อความปลอดภัย
-if "medic_autorefresh_loaded" not in st.session_state:
-    try:
-        from streamlit_autorefresh import st_autorefresh
-        st_autorefresh(interval=1000, key="medic_force_realtime_webhook_v8")
-        st.session_state.medic_autorefresh_loaded = True
-    except:
-        pass
 
 # โหลดข้อมูลจริงล่าสุดเข้าสู่ระบบ
 app_data = load_data()
@@ -247,7 +245,6 @@ else:
     if not app_data["doctors"]:
         st.info("ยังไม่มีรายชื่อแพทย์ในคิวเวร กดเพิ่มชื่อด้านบนได้เลยครับ")
     else:
-        # ขยายสัดส่วนคอลัมน์จากเดิม เพื่อให้ใส่ 5 ปุ่มแล้วไม่ตกบรรทัด
         h_no, h_name, h_status, h_action, h_del = st.columns([0.5, 2.0, 2.0, 5.0, 0.5])
         h_no.markdown("**No.**")
         h_name.markdown("**ชื่อแพทย์**")
@@ -275,7 +272,6 @@ else:
                 status_text += f" ({m:02d}:{s:02d})"
             c_status.code(status_text)
             
-            # แบ่งปุ่มออกเป็น 5 คอลัมน์ย่อยครบถ้วน
             btn_col1, btn_col2, btn_col3, btn_col4, btn_col5 = c_action.columns(5)
             
             if doc['status'] != "✅ พร้อม":
@@ -315,7 +311,6 @@ else:
                     save_data(current_data)
                     st.rerun()
 
-            # 🎮 เพิ่มปุ่มกดเปลี่ยนสถานะ "ไปกิจกรรม" กลับมาให้แล้วครับ
             if doc['status'] != "🎮 ไปกิจกรรม":
                 if btn_col5.button("🎮 กิจกรรม", key=f"btn_event_{idx}", use_container_width=True):
                     current_data = load_data()
