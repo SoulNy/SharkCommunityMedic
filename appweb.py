@@ -14,7 +14,7 @@ STATUS_OPTIONS = ["✅ พร้อม", "⏳ คิวต่อไป", "🛠�
 APP_URL = "https://appwebpy-tv5hqkpzrlalag7noznbfu.streamlit.app/"
 
 # 🔗 วางลิงก์ Discord Webhook ของคุณตรงนี้ได้เลยครับ
-DISCORD_WEBHOOK_URL = "https://ptb.discord.com/api/webhooks/1510984777648574484/8naHbPVtceUvobVERxizU_8H_2DrRO17ZoqXw_g3pbcD8_MxBAFYUOCw2nnK62cBOuWW"
+DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/xxxx/xxxx"
 
 # --- ฟังก์ชันส่งการแจ้งเตือนเข้า Discord Webhook ---
 def send_to_discord(message_content, embed_title, embed_desc, color_code):
@@ -62,11 +62,11 @@ app_data = load_data()
 # ==========================================
 with st.sidebar:
     st.header("⚙️ เมนูการใช้งาน")
-    view_mode = st.radio("เลือกหน้าจอที่ต้องการดู:", ["📺 หน้าจอสำหรับคนดู", "🛠️ หน้าจอคนรันคิว"])
+    view_mode = st.radio("เลือกหน้าจอที่ต้องการดู:", ["📺 หน้าจอสำหรับคนดู (Read-Only)", "🛠️ หน้าจอควบคุม (Admin/Runner)"])
     
     st.markdown("---")
     
-    if view_mode == "🛠️ หน้าจอคนรันคิว":
+    if view_mode == "🛠️ หน้าจอควบคุม (Admin/Runner)":
         st.subheader("👨‍⚕️ ผู้ควบคุมคิว")
         
         # 🟢 กรณีที่ยังไม่มีใครลงชื่อคุมคิว
@@ -135,7 +135,7 @@ if view_mode == "📺 หน้าจอสำหรับคนดู (Read-Onl
         
         # ใช้ st.form ครอบไว้อีกชั้นเพื่อล็อคช่องพิมพ์ไม่ให้กระพริบตามการรีเฟรชทุก 1 วิ
         with st.form("user_register_form", clear_on_submit=True):
-            user_name_input = st.text_input("ชื่อแพทย์:", placeholder="กรอกชื่อของคุณหรือสามารถกรอกเป็นคู่ก็ได้ครับ")
+            user_name_input = st.text_input("ชื่อแพทย์:", placeholder="กรอกชื่อของคุณ / กรอกเป็นคู่")
             submit_reg = st.form_submit_button("ยืนยันลงชื่อเข้าเวร", type="primary")
             
             if submit_reg:
