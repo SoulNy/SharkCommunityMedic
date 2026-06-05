@@ -101,11 +101,11 @@ if view_mode == "📺 หน้าจอสำหรับคนดู (Read-Onl
                 diff_sec = int(time.time() - (doc['lastStatusChange'] / 1000))
                 m, s = divmod(diff_sec, 60)
                 status_text += f" ⏱️ เหม่อไปแล้ว {m:02d}:{s:02d} นาที"
-                c_status.error(status_text) # ใช้กล่องสีแดงไฮไลท์ตอนเหม่อ
+                c_status.error(status_text)
             elif doc['status'] == "⏳ คิวต่อไป":
-                c_status.warning(status_text) # ใช้กล่องสีเหลืองแจ้งเตือนคิวถัดไป
+                c_status.warning(status_text)
             else:
-                c_status.info(status_text) # สถานะปกติใช้กล่องน้ำเงินสะอาดตา
+                c_status.info(status_text)
 
 # ==========================================
 # 🛠️ 2. หน้าจอควบคุม (ADMIN / RUNNER CONTROL)
@@ -161,12 +161,13 @@ else:
                 save_data(app_data)
                 st.rerun()
                 
-            # ปุ่มสลับสถานะ
-            current_status_idx = STATUS_OPTIONS.index(doc['status']) if doc['status'] in STATUS_OPTIONS else 0
+            # ดึงสถานะปัจจุบันมาเช็กตำแหน่ง Index
+            current_status = doc['status']
+            current_status_idx = STATUS_OPTIONS.index(current_status) if current_status in STATUS_OPTIONS else 0
             
-            # เติมตัวเลขเวลานับเหม่อสดๆ แปะไว้ข้างหน้าตัวเลือกฝั่งแอดมินด้วย จะได้รู้ว่าใครเหม่อนานแล้ว
+            # เติมตัวเลขเวลานับเหม่อสดๆ ฝั่งแอดมิน
             display_options = STATUS_OPTIONS.copy()
-            if doc['status'] == "💤 เหม่อ / รี ตม." and doc.get('lastStatusChange'):
+            if current_status == "💤 เหม่อ / รี ตม." and doc.get('lastStatusChange'):
                 diff_sec = int(time.time() - (doc['lastStatusChange'] / 1000))
                 m, s = divmod(diff_sec, 60)
                 display_options[3] = f"💤 เหม่อ ({m:02d}:{s:02d})"
@@ -180,26 +181,25 @@ else:
                 horizontal=True
             )
             
-            # ลอกข้อความเวลากลับมาเป็นชื่อสถานะเพียวๆ ก่อนเอาไปประมวลผล
+            # ลอกข้อความเวลากลับมาเป็นชื่อสถานะเพียวๆ ก่อนเช็ก Logic
             if "💤 เหม่อ" in chosen_status:
                 chosen_status = "💤 เหม่อ / รี ตม."
             
-            # ⚡ Logic ตรวจจับการเปลี่ยนสถานะ
-            if chosen_status != doc['status']:
-                # 🔒 กฎเหล็ก: ถ้าคนนี้ถูกตั้งเป็น "คิวต่อไป" คนอื่นทุกคนที่เป็นคิวต่อไปอยู่ จะต้องเด้งกลับเป็น "พร้อม"
+            # ⚡ Logic การเปลี่ยนสถานะแบบกดล่าสุดได้คิว
+            if chosen_status != current_status:
+                # 🔒 กฎเหล็ก: ถ้าคนล่าสุดเปลี่ยนเป็น "คิวต่อไป" -> ให้คนเก่าทุกคนที่เคยเป็นคิวต่อไป เด้งกลับเป็น "พร้อม"
                 if chosen_status == "⏳ คิวต่อไป":
                     for d_idx, d in enumerate(app_data["doctors"]):
                         if d_idx != idx and d["status"] == "⏳ คิวต่อไป":
                             app_data["doctors"][d_idx]["status"] = "✅ พร้อม"
                             app_data["doctors"][d_idx]["lastStatusChange"] = time.time() * 1000
                             
-                # อัปเดตสถานะใหม่และรีเซ็ตเวลาเริ่มต้นนับ (Timestamp) ของคนนี้
+                # บันทึกสถานะใหม่ของคนที่กดล่าสุด
                 app_data["doctors"][idx]["status"] = chosen_status
                 app_data["doctors"][idx]["lastStatusChange"] = time.time() * 1000
                 save_data(app_data)
                 st.rerun()
                 
-            # ปุ่มลบรายคน
             if c_del.button("🗑️", key=f"del_{idx}"):
                 app_data["doctors"].pop(idx)
                 save_data(app_data)
