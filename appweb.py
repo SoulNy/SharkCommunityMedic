@@ -136,7 +136,7 @@ if view_mode == "📺 หน้าจอสำหรับคนดู (Read-Onl
             st.markdown(f"🟢 **ผู้คุมคิวเวรวันนี้:** {app_data['runnerName']}")
         else:
             st.markdown("⚪ **ผู้คุมคิวเวรวันนี้:** ไม่มี")
-        st.markdown(f"⏳ *อัปเดตล่าสุด: {last_up_text}*")
+        # st.markdown(f"⏳ *อัปเดตล่าสุด: {last_up_text}*")
         
     st.markdown("---")
     
