@@ -66,7 +66,7 @@ with st.sidebar:
     
     st.markdown("---")
     
-    if view_mode == "🛠️ หน้าจอควบคุม (Admin/Runner)":
+    if view_mode == "🛠️ หน้าจอคนรันคิว":
         st.subheader("👨‍⚕️ ผู้ควบคุมคิว")
         
         # 🟢 กรณีที่ยังไม่มีใครลงชื่อคุมคิว
@@ -114,7 +114,7 @@ last_up_text = datetime.fromtimestamp(last_up / 1000).strftime('%d/%m/%Y %H:%M:%
 # ==========================================
 # 📺 1. หน้าจอสำหรับคนดูอย่างเดียว (READ-ONLY)
 # ==========================================
-if view_mode == "📺 หน้าจอสำหรับคนดู (Read-Only)":
+if view_mode == "📺 หน้าจอสำหรับคนดู":
     st.title("📋 ตารางสถานะแพทย์ Shark Community (สำหรับคนดู)")
     
     col_t1, col_t2 = st.columns([2, 1])
@@ -135,7 +135,7 @@ if view_mode == "📺 หน้าจอสำหรับคนดู (Read-Onl
         
         # ใช้ st.form ครอบไว้อีกชั้นเพื่อล็อคช่องพิมพ์ไม่ให้กระพริบตามการรีเฟรชทุก 1 วิ
         with st.form("user_register_form", clear_on_submit=True):
-            user_name_input = st.text_input("ชื่อแพทย์:", placeholder="ตัวอย่าง: หมอเอ / Silas Shadow...")
+            user_name_input = st.text_input("ชื่อแพทย์:", placeholder="ตัวอย่าง: หมอเอ / หมอบี")
             submit_reg = st.form_submit_button("ยืนยันลงชื่อเข้าเวร", type="primary")
             
             if submit_reg:
