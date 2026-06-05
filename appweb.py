@@ -2,31 +2,26 @@ import streamlit as st
 import json
 import os
 import time
-import requests  # ไลบรารีสำหรับยิง Webhook เข้า Discord
+import requests
 from datetime import datetime, timedelta
 
-# --- ตั้งค่าหน้าเว็บ ---
 st.set_page_config(page_title="Shark Community Medic", page_icon="🚑", layout="wide")
 
 DATA_FILE = 'data.json'
 STATUS_OPTIONS = ["✅ พร้อม", "⏳ คิวต่อไป", "🛠️ เคสแก้", "💤 เหม่อ / รี ตม.", "🎮 ไปกิจกรรม"]
 APP_URL = "https://appwebpy-tv5hqkpzrlalag7noznbfu.streamlit.app/"
 
-# 🔗 วางลิงก์ Discord Webhook ของคุณตรงนี้ได้เลยครับ
 DISCORD_WEBHOOK_URL = "https://ptb.discord.com/api/webhooks/1510984777648574484/8naHbPVtceUvobVERxizU_8H_2DrRO17ZoqXw_g3pbcD8_MxBAFYUOCw2nnK62cBOuWW"
 
-# 🔌 เปิดระบบ Autorefresh บังคับให้รันโค้ดใหม่ทุกๆ 1 วินาที เพื่อให้นาฬิกานับเวลาเหม่อวิ่งเรียลไทม์
 try:
     from streamlit_autorefresh import st_autorefresh
     st_autorefresh(interval=1000, key="medic_realtime_clock_v10")
 except Exception as e:
     st.warning("⚠️ แนะนำให้ติดตั้ง streamlit-autorefresh เพื่อระบบเวลาที่เรียลไทม์")
 
-# --- ฟังก์ชันจัดการเวลาไทย (GMT+7) ---
 def get_thailand_time():
     return datetime.utcnow() + timedelta(hours=7)
 
-# --- ฟังก์ชันส่งการแจ้งเตือนเข้า Discord Webhook ---
 def send_to_discord(message_content, embed_title, embed_desc, color_code):
     if DISCORD_WEBHOOK_URL and "discord.com" in DISCORD_WEBHOOK_URL:
         discord_timestamp = datetime.utcnow().isoformat()
@@ -47,7 +42,6 @@ def send_to_discord(message_content, embed_title, embed_desc, color_code):
         except Exception as e:
             pass
 
-# --- ฟังก์ชันอ่าน/เขียนไฟล์ (JSON) ---
 def load_data():
     if os.path.exists(DATA_FILE):
         try:
@@ -56,7 +50,7 @@ def load_data():
                 return json.load(f)
         except:
             pass
-    # เพิ่มโครงสร้างข้อมูล "runnerStartTime" เพื่อใช้จำเวลาตอนเข้าเวร
+
     return {"runnerName": "", "runnerStartTime": None, "doctors": [], "lastUpdated": None}
 
 def save_data(data):
@@ -64,12 +58,9 @@ def save_data(data):
     with open(DATA_FILE, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
 
-# โหลดข้อมูลจริงล่าสุดเข้าสู่ระบบ
+
 app_data = load_data()
 
-# ==========================================
-# 🎛️ SIDEBAR: เมนูสลับหน้าจอ และฟอร์มผู้ควบคุมคิว
-# ==========================================
 with st.sidebar:
     st.header("⚙️ เมนูการใช้งาน")
     view_mode = st.radio("เลือกหน้าจอที่ต้องการดู:", ["📺 หน้าจอสำหรับคนดู (Read-Only)", "🛠️ หน้าจอควบคุม (Admin/Runner)"])
@@ -79,7 +70,6 @@ with st.sidebar:
     if view_mode == "🛠️ หน้าจอควบคุม (Admin/Runner)":
         st.subheader("👨‍⚕️ ผู้ควบคุมคิว")
         
-        # 🟢 กรณีที่ยังไม่มีใครลงชื่อคุมคิว
         if not app_data.get("runnerName"):
             with st.form("runner_form", clear_on_submit=True):
                 name_input = st.text_input("ใส่ชื่อของคุณเพื่อคุมคิว:")
@@ -101,7 +91,6 @@ with st.sidebar:
                         )
                         st.rerun()
         
-        # 🔴 กรณีที่มีคนคุมคิวอยู่แล้ว และต้องการกดออกเวร
         else:
             st.success(f"ผู้รันคิวปัจจุบัน: **{app_data['runnerName']}**")
             if st.button("ลงชื่อออก (Logout)"):
@@ -121,12 +110,10 @@ with st.sidebar:
                     else:
                         duration_text = f"{minutes} นาที {seconds} วินาที"
                 
-                # ล้างข้อมูลผู้คุมคิว (ข้อมูลรายชื่อแพทย์คนอื่นยังอยู่ครบถ้วน)
                 app_data["runnerName"] = ""
                 app_data["runnerStartTime"] = None
                 save_data(app_data)
                 
-                # 💥 ส่งรายละเอียดเวลารวมเข้า Discord Webhook
                 send_to_discord(
                     message_content=f"📴 **ผู้คุมเวรแพทย์ลงชื่อออกแล้วจ้า!**",
                     embed_title="🔴 หมอลงชื่อออกเวรแล้วครับ",
@@ -135,13 +122,9 @@ with st.sidebar:
                 )
                 st.rerun()
 
-# แสดงเวลาอัปเดตล่าสุด
 last_up = app_data.get("lastUpdated")
 last_up_text = datetime.fromtimestamp(last_up / 1000).strftime('%d/%m/%Y %H:%M:%S') if last_up else "ยังไม่มีการอัปเดต"
 
-# ==========================================
-# 📺 1. หน้าจอสำหรับคนดูอย่างเดียว (READ-ONLY)
-# ==========================================
 if view_mode == "📺 หน้าจอสำหรับคนดู (Read-Only)":
     st.title("📋 ตารางสถานะแพทย์ Shark Community (สำหรับคนดู)")
     
@@ -208,9 +191,6 @@ if view_mode == "📺 หน้าจอสำหรับคนดู (Read-Onl
             else:
                 c_status.info(status_text)
 
-# ==========================================
-# 🛠️ 2. หน้าจอควบคุม (ADMIN / RUNNER CONTROL)
-# ==========================================
 else:
     st.title("🚑 [ผู้รันคิว] ระบบจัดการสถานะแพทย์ Shark Community")
     st.caption(f"แก้ไขล่าสุดเมื่อ: {last_up_text}")
