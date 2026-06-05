@@ -14,7 +14,7 @@ STATUS_OPTIONS = ["✅ พร้อม", "⏳ คิวต่อไป", "🛠�
 APP_URL = "https://appwebpy-tv5hqkpzrlalag7noznbfu.streamlit.app/"
 
 # 🔗 วางลิงก์ Discord Webhook ของคุณตรงนี้ได้เลยครับ
-DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/xxxx/xxxx"
+DISCORD_WEBHOOK_URL = "https://ptb.discord.com/api/webhooks/1510984777648574484/8naHbPVtceUvobVERxizU_8H_2DrRO17ZoqXw_g3pbcD8_MxBAFYUOCw2nnK62cBOuWW"
 
 # --- ฟังก์ชันส่งการแจ้งเตือนเข้า Discord Webhook ---
 def send_to_discord(message_content, embed_title, embed_desc, color_code):
