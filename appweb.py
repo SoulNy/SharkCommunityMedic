@@ -3,8 +3,7 @@ import json
 import os
 import time
 import requests  # ไลบรารีสำหรับยิง Webhook เข้า Discord
-from datetime import datetime
-from streamlit_autorefresh import st_autorefresh
+from datetime import datetime, timedelta
 
 # --- ตั้งค่าหน้าเว็บ ---
 st.set_page_config(page_title="Shark Community Medic", page_icon="🚑", layout="wide")
@@ -16,9 +15,15 @@ APP_URL = "https://appwebpy-tv5hqkpzrlalag7noznbfu.streamlit.app/"
 # 🔗 วางลิงก์ Discord Webhook ของคุณตรงนี้ได้เลยครับ
 DISCORD_WEBHOOK_URL = "https://ptb.discord.com/api/webhooks/1510984777648574484/8naHbPVtceUvobVERxizU_8H_2DrRO17ZoqXw_g3pbcD8_MxBAFYUOCw2nnK62cBOuWW"
 
+# --- ฟังก์ชันจัดการเวลาไทย (GMT+7) ---
+def get_thailand_time():
+    return datetime.utcnow() + timedelta(hours=7)
+
 # --- ฟังก์ชันส่งการแจ้งเตือนเข้า Discord Webhook ---
 def send_to_discord(message_content, embed_title, embed_desc, color_code):
     if DISCORD_WEBHOOK_URL and "discord.com" in DISCORD_WEBHOOK_URL:
+        discord_timestamp = datetime.utcnow().isoformat()
+        
         payload = {
             "content": message_content,
             "embeds": [
@@ -26,7 +31,7 @@ def send_to_discord(message_content, embed_title, embed_desc, color_code):
                     "title": embed_title,
                     "description": embed_desc,
                     "color": color_code,
-                    "timestamp": datetime.utcnow().isoformat()
+                    "timestamp": discord_timestamp
                 }
             ]
         }
@@ -44,15 +49,22 @@ def load_data():
                 return json.load(f)
         except:
             pass
-    return {"runnerName": "", "doctors": [], "lastUpdated": None}
+    # เพิ่มโครงสร้างข้อมูล "runnerStartTime" เพื่อใช้จำเวลาตอนเข้าเวร
+    return {"runnerName": "", "runnerStartTime": None, "doctors": [], "lastUpdated": None}
 
 def save_data(data):
     data["lastUpdated"] = time.time() * 1000
     with open(DATA_FILE, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
 
-# 🔌 สั่งแอบดึงข้อมูลรีเฟรชเงียบๆ ทุกๆ 1 วินาที เพื่อระบบ Real-Time
-st_autorefresh(interval=1000, key="medic_force_realtime_webhook_v6")
+# 🔌 ใช้ระบบตรวจจับเงียบๆ เพื่อความปลอดภัย
+if "medic_autorefresh_loaded" not in st.session_state:
+    try:
+        from streamlit_autorefresh import st_autorefresh
+        st_autorefresh(interval=1000, key="medic_force_realtime_webhook_v8")
+        st.session_state.medic_autorefresh_loaded = True
+    except:
+        pass
 
 # โหลดข้อมูลจริงล่าสุดเข้าสู่ระบบ
 app_data = load_data()
@@ -75,10 +87,12 @@ with st.sidebar:
                 name_input = st.text_input("ใส่ชื่อของคุณเพื่อคุมคิว:")
                 if st.form_submit_button("ยืนยันตัวตน"):
                     if name_input.strip():
-                        current_time_str = datetime.now().strftime('%H:%M:%S น.')
+                        current_time_str = get_thailand_time().strftime('%H:%M:%S น.')
                         runner_name = name_input.strip()
                         
+                        # บันทึกชื่อ และ เวลาเริ่มเข้าเวร (ใช้หน่วยวินาที epoch)
                         app_data["runnerName"] = runner_name
+                        app_data["runnerStartTime"] = time.time()
                         save_data(app_data)
                         
                         send_to_discord(
@@ -93,16 +107,32 @@ with st.sidebar:
         else:
             st.success(f"ผู้รันคิวปัจจุบัน: **{app_data['runnerName']}**")
             if st.button("ลงชื่อออก (Logout)"):
-                current_time_str = datetime.now().strftime('%H:%M:%S น.')
+                current_time_str = get_thailand_time().strftime('%H:%M:%S น.')
                 old_runner = app_data["runnerName"]
+                start_time = app_data.get("runnerStartTime")
                 
+                # คำนวณเวลารวมที่อยู่ในเวร
+                duration_text = "ไม่สามารถคำนวณได้"
+                if start_time:
+                    total_seconds = int(time.time() - start_time)
+                    hours, remainder = divmod(total_seconds, 3600)
+                    minutes, seconds = divmod(remainder, 60)
+                    
+                    if hours > 0:
+                        duration_text = f"{hours} ชั่วโมง {minutes} นาที"
+                    else:
+                        duration_text = f"{minutes} นาที {seconds} วินาที"
+                
+                # ล้างข้อมูลผู้คุมคิว (ข้อมูลรายชื่อแพทย์คนอื่นยังอยู่ครบถ้วน)
                 app_data["runnerName"] = ""
+                app_data["runnerStartTime"] = None
                 save_data(app_data)
                 
+                # 💥 ส่งรายละเอียดเวลารวมเข้า Discord Webhook
                 send_to_discord(
                     message_content=f"📴 **ผู้คุมเวรแพทย์ลงชื่อออกแล้วจ้า!**",
                     embed_title="🔴 หมอลงชื่อออกเวรแล้วครับ",
-                    embed_desc=f"**ผู้รันคิวเดิม:** {old_runner}\n**เวลาออก:** {current_time_str}\n\n📌 ยังสามารถเข้าดูสถานะที่ค้างอยู่ล่าสุดของแพทย์คนอื่นๆ ได้ที่ลิงก์เดิมน้า:\n👉 [Shark Community Medic · Streamlit]({APP_URL})",
+                    embed_desc=f"**ผู้รันคิวเดิม:** {old_runner}\n**เวลาออก:** {current_time_str}\n**⏱️ รวมเวลาคุมเวรทั้งหมด:** {duration_text}\n\n📌 ยังสามารถเข้าดูสถานะที่ค้างอยู่ล่าสุดของแพทย์คนอื่นๆ ได้ที่ลิงก์เดิมน้า:\n👉 [Shark Community Medic · Streamlit]({APP_URL})",
                     color_code=15158332
                 )
                 st.rerun()
@@ -129,13 +159,11 @@ if view_mode == "📺 หน้าจอสำหรับคนดู (Read-Onl
         
     st.markdown("---")
     
-    # 🛠️ ปรับปรุงใหม่: ใช้ st.expander แทน Pop-up เพื่อกันบั๊กโดนดีดหายตอนรีเฟรช 1 วิ
     with st.expander("➕ คลิกที่นี่เพื่อลงชื่อเข้าคิวด้วยตัวเอง", expanded=False):
         st.markdown("##### กรุณากรอกชื่อของคุณเพื่อเพิ่มรายชื่อเข้าสู่ระบบคิวกลาง")
         
-        # ใช้ st.form ครอบไว้อีกชั้นเพื่อล็อคช่องพิมพ์ไม่ให้กระพริบตามการรีเฟรชทุก 1 วิ
         with st.form("user_register_form", clear_on_submit=True):
-            user_name_input = st.text_input("ชื่อแพทย์:", placeholder="กรอกชื่อของคุณ / กรอกเป็นคู่")
+            user_name_input = st.text_input("ชื่อแพทย์:", placeholder="ตัวอย่าง: หมอเอ / Silas Shadow...")
             submit_reg = st.form_submit_button("ยืนยันลงชื่อเข้าเวร", type="primary")
             
             if submit_reg:
