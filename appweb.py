@@ -62,11 +62,11 @@ app_data = load_data()
 # ==========================================
 with st.sidebar:
     st.header("⚙️ เมนูการใช้งาน")
-    view_mode = st.radio("เลือกหน้าจอที่ต้องการดู:", ["📺 หน้าจอสำหรับคนดู (Read-Only)", "🛠️ หน้าจอควบคุม (Admin/Runner)"])
+    view_mode = st.radio("เลือกหน้าจอที่ต้องการดู:", ["📺 หน้าจอสำหรับคนดู", "🛠️ หน้าจอคนรันคิว"])
     
     st.markdown("---")
     
-    if view_mode == "🛠️ หน้าจอควบคุม (Admin/Runner)":
+    if view_mode == "🛠️ หน้าจอคนรันคิว":
         st.subheader("👨‍⚕️ ผู้ควบคุมคิว")
         
         # 🟢 กรณีที่ยังไม่มีใครลงชื่อคุมคิว
@@ -135,7 +135,7 @@ if view_mode == "📺 หน้าจอสำหรับคนดู (Read-Onl
         
         # ใช้ st.form ครอบไว้อีกชั้นเพื่อล็อคช่องพิมพ์ไม่ให้กระพริบตามการรีเฟรชทุก 1 วิ
         with st.form("user_register_form", clear_on_submit=True):
-            user_name_input = st.text_input("ชื่อแพทย์:", placeholder="ตัวอย่าง: หมอเอ / Silas Shadow...")
+            user_name_input = st.text_input("ชื่อแพทย์:", placeholder="กรอกชื่อของคุณหรือสามารถกรอกเป็นคู่ก็ได้ครับ")
             submit_reg = st.form_submit_button("ยืนยันลงชื่อเข้าเวร", type="primary")
             
             if submit_reg:
