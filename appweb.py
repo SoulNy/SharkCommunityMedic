@@ -205,6 +205,8 @@ if view_mode == "📺 หน้าจอสำหรับคนดู (Read-Onl
                 c_status.error(status_text)
             elif doc['status'] == "⏳ คิวต่อไป":
                 c_status.warning(status_text)
+            elif doc['status'] == "🎮 ไปกิจกรรม":
+                c_status.info(status_text)
             else:
                 c_status.info(status_text)
 
@@ -245,7 +247,8 @@ else:
     if not app_data["doctors"]:
         st.info("ยังไม่มีรายชื่อแพทย์ในคิวเวร กดเพิ่มชื่อด้านบนได้เลยครับ")
     else:
-        h_no, h_name, h_status, h_action, h_del = st.columns([0.5, 2.5, 2, 4, 1])
+        # ขยายสัดส่วนคอลัมน์จากเดิม เพื่อให้ใส่ 5 ปุ่มแล้วไม่ตกบรรทัด
+        h_no, h_name, h_status, h_action, h_del = st.columns([0.5, 2.0, 2.0, 5.0, 0.5])
         h_no.markdown("**No.**")
         h_name.markdown("**ชื่อแพทย์**")
         h_status.markdown("**สถานะปัจจุบัน**")
@@ -254,7 +257,7 @@ else:
         st.markdown("---")
         
         for idx, doc in enumerate(app_data["doctors"]):
-            c_no, c_name, c_status, c_action, c_del = st.columns([0.5, 2.5, 2, 4, 1])
+            c_no, c_name, c_status, c_action, c_del = st.columns([0.5, 2.0, 2.0, 5.0, 0.5])
             c_no.write(f"`{idx + 1}`")
             
             edited_name = c_name.text_input("ชื่อหมอ", value=doc['name'], key=f"name_{idx}", label_visibility="collapsed")
@@ -272,7 +275,8 @@ else:
                 status_text += f" ({m:02d}:{s:02d})"
             c_status.code(status_text)
             
-            btn_col1, btn_col2, btn_col3, btn_col4 = c_action.columns(4)
+            # แบ่งปุ่มออกเป็น 5 คอลัมน์ย่อยครบถ้วน
+            btn_col1, btn_col2, btn_col3, btn_col4, btn_col5 = c_action.columns(5)
             
             if doc['status'] != "✅ พร้อม":
                 if btn_col1.button("✅ พร้อม", key=f"btn_ready_{idx}", use_container_width=True):
@@ -283,7 +287,7 @@ else:
                     st.rerun()
             
             if doc['status'] != "⏳ คิวต่อไป":
-                if btn_col2.button("⏳ คิวถัดไป", key=f"btn_next_{idx}", use_container_width=True, type="secondary"):
+                if btn_col2.button("⏳ ถัดไป", key=f"btn_next_{idx}", use_container_width=True, type="secondary"):
                     current_data = load_data()
                     for d_idx, d in enumerate(current_data["doctors"]):
                         if d["status"] == "⏳ คิวต่อไป":
@@ -307,6 +311,15 @@ else:
                 if btn_col4.button("💤 เหม่อ", key=f"btn_afk_{idx}", use_container_width=True):
                     current_data = load_data()
                     current_data["doctors"][idx]["status"] = "💤 เหม่อ / รี ตม."
+                    current_data["doctors"][idx]["lastStatusChange"] = time.time() * 1000
+                    save_data(current_data)
+                    st.rerun()
+
+            # 🎮 เพิ่มปุ่มกดเปลี่ยนสถานะ "ไปกิจกรรม" กลับมาให้แล้วครับ
+            if doc['status'] != "🎮 ไปกิจกรรม":
+                if btn_col5.button("🎮 กิจกรรม", key=f"btn_event_{idx}", use_container_width=True):
+                    current_data = load_data()
+                    current_data["doctors"][idx]["status"] = "🎮 ไปกิจกรรม"
                     current_data["doctors"][idx]["lastStatusChange"] = time.time() * 1000
                     save_data(current_data)
                     st.rerun()
