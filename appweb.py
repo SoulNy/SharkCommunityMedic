@@ -3,6 +3,8 @@ import json
 import os
 import time
 from datetime import datetime
+# 🔌 ต้องลง library เพิ่มเติม: pip install streamlit-autorefresh
+from streamlit_autorefresh import st_autorefresh
 
 # --- ตั้งค่าหน้าเว็บ ---
 st.set_page_config(page_title="Shark Community Medic", page_icon="🚑", layout="wide")
@@ -25,23 +27,22 @@ def save_data(data):
     with open(DATA_FILE, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
 
-# โหลดข้อมูลเข้าคลังตระกูล Streamlit
-if 'app_data' not in st.session_state:
-    st.session_state.app_data = load_data()
+# ระบบแอบรีเฟรชเช็กข้อมูลหลังบ้านเงียบๆ ทุกๆ 1000 มิลลิวินาที (1 วินาที) แบบ Real-Time
+st_autorefresh(interval=1000, key="medic_datarefresh")
 
-app_data = st.session_state.app_data
+# โันข้อมูลเข้าคลังตระกูล Streamlit ให้เป็นค่าล่าสุดเสมอ
+app_data = load_data()
+st.session_state.app_data = app_data
 
 # ==========================================
 # 🎛️ SIDEBAR: ส่วนเลือกโหมดการเข้าใช้งาน
 # ==========================================
 with st.sidebar:
     st.header("⚙️ เมนูการใช้งาน")
-    # ตัวเลือกสลับหน้าจอ
     view_mode = st.radio("เลือกหน้าจอที่ต้องการดู:", ["📺 หน้าจอสำหรับคนดู (Read-Only)", "🛠️ หน้าจอควบคุม (Admin/Runner)"])
     
     st.markdown("---")
     
-    # ส่วนตั้งชื่อผู้รันคิว (จะแสดงผลเมื่ออยู่ในโหมด Admin เท่านั้น)
     if view_mode == "🛠️ หน้าจอควบคุม (Admin/Runner)":
         st.subheader("👨‍⚕️ ผู้ควบคุมคิว")
         if not app_data.get("runnerName"):
@@ -71,7 +72,7 @@ if view_mode == "📺 หน้าจอสำหรับคนดู (Read-Onl
     
     col_t1, col_t2 = st.columns([2, 1])
     with col_t1:
-        st.caption("ระบบอัปเดตอัตโนมัติ | ไม่สามารถแก้ไขข้อมูลหน้าจอได้")
+        st.caption("⚡ ระบบอัปเดตแบบ Real-Time | ไม่สามารถแก้ไขข้อมูลหน้าจอได้")
     with col_t2:
         if app_data.get("runnerName"):
             st.markdown(f"🟢 **ผู้คุมคิวเวรวันนี้:** {app_data['runnerName']}")
@@ -81,11 +82,9 @@ if view_mode == "📺 หน้าจอสำหรับคนดู (Read-Onl
         
     st.markdown("---")
     
-    # ตารางรายชื่อหมอแบบคนดูอย่างเดียว
     if not app_data["doctors"]:
         st.info("ยังไม่มีรายชื่อแพทย์ในคิวเวรในขณะนี้")
     else:
-        # หัวข้อตาราง
         h_no, h_name, h_status = st.columns([1, 4, 5])
         h_no.markdown("**No.**")
         h_name.markdown("**ชื่อแพทย์**")
@@ -97,7 +96,6 @@ if view_mode == "📺 หน้าจอสำหรับคนดู (Read-Onl
             c_no.write(f"`{idx + 1}`")
             c_name.markdown(f"**{doc['name']}**")
             
-            # คำนวณเวลาเหม่อ
             status_text = doc['status']
             if doc['status'] == "💤 เหม่อ / รี ตม." and doc.get('lastStatusChange'):
                 diff_sec = int(time.time() - (doc['lastStatusChange'] / 1000))
@@ -114,7 +112,6 @@ else:
     st.caption(f"แก้ไขล่าสุดเมื่อ: {last_up_text}")
     st.markdown("---")
     
-    # ส่วนเพิ่มรายชื่อแพทย์
     col_add, col_clear = st.columns([3, 1])
     with col_add:
         with st.form("add_doctor_form", clear_on_submit=True):
@@ -130,7 +127,7 @@ else:
                     st.rerun()
                     
     with col_clear:
-        st.write("") # ดันระยะลงมาให้ตรงกัน
+        st.write("") 
         st.write("") 
         if st.button("🗑️ ล้างคิวทั้งหมด", type="primary"):
             app_data["doctors"] = []
@@ -139,11 +136,9 @@ else:
             
     st.markdown("---")
     
-    # ตารางรายชื่อหมอแบบ Admin (แก้ไข/ติ๊กเลือกได้)
     if not app_data["doctors"]:
         st.info("ยังไม่มีรายชื่อแพทย์ในคิวเวร กดเพิ่มชื่อด้านบนได้เลยครับ")
     else:
-        # หัวข้อตาราง
         h_no, h_name, h_status, h_del = st.columns([1, 3, 5, 1])
         h_no.markdown("**No.**")
         h_name.markdown("**ชื่อแพทย์**")
@@ -153,18 +148,15 @@ else:
         
         for idx, doc in enumerate(app_data["doctors"]):
             c_no, c_name, c_status, c_del = st.columns([1, 3, 5, 1])
-            
-            # ลำดับ
             c_no.write(f"`{idx + 1}`")
             
-            # ช่องแก้ไขชื่อหมอสดๆ
+            # ช่องพิมพ์แก้ไขชื่อ
             edited_name = c_name.text_input("ชื่อหมอ", value=doc['name'], key=f"name_{idx}", label_visibility="collapsed")
             if edited_name != doc['name']:
                 app_data["doctors"][idx]["name"] = edited_name
                 save_data(app_data)
                 st.rerun()
                 
-            # ปุ่มสลับสถานะ (Radio) ทางแนวนอน
             current_status_idx = STATUS_OPTIONS.index(doc['status']) if doc['status'] in STATUS_OPTIONS else 0
             chosen_status = c_status.radio(
                 "เปลี่ยนสถานะ", 
@@ -175,9 +167,7 @@ else:
                 horizontal=True
             )
             
-            # ถ้ามีการเปลี่ยนสถานะ
             if chosen_status != doc['status']:
-                # ระบบล็อก "⏳ คิวต่อไป" ให้มีคนเดียว
                 if chosen_status == "⏳ คิวต่อไป":
                     for d_idx, d in enumerate(app_data["doctors"]):
                         if d_idx != idx and d["status"] == "⏳ คิวต่อไป":
@@ -189,12 +179,7 @@ else:
                 save_data(app_data)
                 st.rerun()
                 
-            # ปุ่มลบชื่อรายคน
             if c_del.button("🗑️", key=f"del_{idx}"):
                 app_data["doctors"].pop(idx)
                 save_data(app_data)
                 st.rerun()
-
-# --- ระบบ Auto Refresh หน้าจออัตโนมัติทุกๆ 2 วินาที ---
-time.sleep(2)
-st.rerun()
